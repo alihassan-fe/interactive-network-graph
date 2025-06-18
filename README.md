@@ -6,8 +6,6 @@ A custom-built React application for visualizing healthcare professional network
 
 This is a fully custom-built interactive network graph application designed specifically for healthcare professionals. The application allows users to explore connections between doctors, researchers, and other healthcare professionals through an intuitive visual interface.
 
-**Built with custom React components - no external graph libraries or AI assistance used.**
-
 ## Features
 
 ### 🔍 Search & Discovery
