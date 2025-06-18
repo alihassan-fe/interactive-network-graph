@@ -14,14 +14,16 @@ This is a fully custom-built interactive network graph application designed spec
 - Dynamic profile updates based on selections
 
 ### 🧠 Network Visualization
-- Custom SVG-based network graph implementation
+- Interactive network graph built with ReactFlow
 - Central node layout with connected professionals arranged in circles
 - Beautiful curved connection lines with relationship labels
 - Sky blue gradient background with smooth visual effects
 
 ### 🖱️ Interactive Experience
 - Click any professional node to view detailed profile information
+- Drag nodes to rearrange the network layout
 - Hover over connections to see relationship details and strength
+- Zoom in/out and reset view controls
 - Smooth scaling animations and visual feedback
 - Responsive design that works across all devices
 
@@ -34,11 +36,12 @@ Each healthcare professional includes:
 
 ## Technical Implementation
 
-### Custom Network Graph
-- Built from scratch using HTML5 Canvas and SVG
-- No external graph libraries (ReactFlow, D3, etc.)
-- Custom node positioning algorithms
-- Hand-crafted connection path generation
+### Network Graph Technology
+- Built with ReactFlow for interactive node-based visualizations
+- Custom node components for healthcare professional profiles
+- SVG-based connection rendering with curved paths
+- Drag and drop functionality for node repositioning
+- Zoom and pan controls for navigation
 
 ### Modern React Architecture
 - Next.js 15 with App Router
@@ -57,7 +60,7 @@ Each healthcare professional includes:
 \`\`\`
 ├── app/                    # Next.js app directory
 ├── components/            # React components
-│   ├── network-graph.tsx     # Custom network visualization
+│   ├── network-graph.tsx     # ReactFlow network visualization
 │   ├── profile-sidebar.tsx   # Professional profile display
 │   ├── hcp-node-custom.tsx   # Individual node components
 │   └── ...
@@ -102,6 +105,14 @@ interface HCP {
 }
 \`\`\`
 
+## Key Dependencies
+
+- **ReactFlow**: Interactive node-based graph visualization
+- **Next.js 15**: React framework with App Router
+- **TypeScript**: Type-safe development
+- **Tailwind CSS**: Utility-first CSS framework
+- **Lucide React**: Icon library
+
 ## Customization
 
 ### Adding New Professionals
@@ -115,7 +126,7 @@ Update Tailwind classes throughout the components or modify the global CSS in `a
 
 ## Performance
 
-- **Optimized Rendering**: Custom implementation ensures smooth 60fps animations
+- **Optimized Rendering**: ReactFlow ensures smooth 60fps animations
 - **Efficient Updates**: Only re-renders components when necessary
 - **Responsive Design**: Works seamlessly on desktop, tablet, and mobile devices
 
@@ -142,4 +153,4 @@ MIT License - feel free to use this code for your own healthcare network visuali
 
 ---
 
-**Built with ❤️ using custom React components and modern web technologies.**
+**Built with ❤️ using React, ReactFlow, and modern web technologies.**
