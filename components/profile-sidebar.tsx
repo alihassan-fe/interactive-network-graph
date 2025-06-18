@@ -43,11 +43,11 @@ export function ProfileSidebar({ selectedHCP }: ProfileSidebarProps) {
         <div className="grid grid-cols-2 gap-4 mb-6">
           <div className="text-center">
             <div className="text-2xl font-bold text-gray-900">{selectedHCP.connections}</div>
-            <div className="text-sm text-gray-500">Peers</div>
+            <div className="text-sm text-gray-500">Patients Served</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-green-600">{selectedHCP.matchScore}%</div>
-            <div className="text-sm text-gray-500">Match</div>
+            <div className="text-sm text-gray-500">Success Rate</div>
           </div>
         </div>
 

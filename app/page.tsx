@@ -47,7 +47,7 @@ export default function HomePage() {
           </div>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-500">My peers:</span>
+              <span className="text-sm text-gray-500">My patients:</span>
               <span className="font-semibold text-blue-600">332</span>
             </div>
             <div className="flex items-center gap-2">

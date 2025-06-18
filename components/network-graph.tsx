@@ -1,33 +1,12 @@
 "use client"
 
 import type React from "react"
-
 import { useCallback, useEffect, useState } from "react"
-import ReactFlow, {
-  type Node,
-  type Edge,
-  useNodesState,
-  useEdgesState,
-  Controls,
-  Background,
-  type NodeTypes,
-  type EdgeTypes,
-  ConnectionMode,
-} from "reactflow"
-import "reactflow/dist/style.css"
 
-import { HCPNode } from "./hcp-node"
-import { ConnectionEdge } from "./connection-edge"
+// Custom network graph implementation without ReactFlow
+import { HCPNode } from "./hcp-node-custom"
 import { ConnectionTooltip } from "./connection-tooltip"
 import { mockHCPs, mockConnections, type HCP, type Connection } from "@/lib/mock-data"
-
-const nodeTypes: NodeTypes = {
-  hcp: HCPNode,
-}
-
-const edgeTypes: EdgeTypes = {
-  connection: ConnectionEdge,
-}
 
 interface NetworkGraphProps {
   selectedHCP: HCP
@@ -35,9 +14,24 @@ interface NetworkGraphProps {
   highlightedNodeId: string | null
 }
 
+interface NodePosition {
+  id: string
+  x: number
+  y: number
+  hcp: HCP
+  isCenter: boolean
+}
+
+interface EdgePosition {
+  id: string
+  source: NodePosition
+  target: NodePosition
+  connection: Connection
+}
+
 export function NetworkGraph({ selectedHCP, onNodeSelect, highlightedNodeId }: NetworkGraphProps) {
-  const [nodes, setNodes, onNodesChange] = useNodesState([])
-  const [edges, setEdges, onEdgesChange] = useEdgesState([])
+  const [nodes, setNodes] = useState<NodePosition[]>([])
+  const [edges, setEdges] = useState<EdgePosition[]>([])
   const [hoveredConnection, setHoveredConnection] = useState<Connection | null>(null)
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
 
@@ -49,16 +43,12 @@ export function NetworkGraph({ selectedHCP, onNodeSelect, highlightedNodeId }: N
       const radius = 200
 
       // Create center node
-      const centerNode: Node = {
+      const centerNode: NodePosition = {
         id: centerHCP.id,
-        type: "hcp",
-        position: { x: centerX, y: centerY },
-        data: {
-          hcp: centerHCP,
-          isCenter: true,
-          isHighlighted: highlightedNodeId === centerHCP.id,
-          onSelect: onNodeSelect,
-        },
+        x: centerX,
+        y: centerY,
+        hcp: centerHCP,
+        isCenter: true,
       }
 
       // Get connected HCPs
@@ -69,49 +59,44 @@ export function NetworkGraph({ selectedHCP, onNodeSelect, highlightedNodeId }: N
       const connectedHCPs = mockHCPs.filter((hcp) => connectedHCPIds.includes(hcp.id))
 
       // Create surrounding nodes in a circle
-      const surroundingNodes: Node[] = connectedHCPs.map((hcp, index) => {
+      const surroundingNodes: NodePosition[] = connectedHCPs.map((hcp, index) => {
         const angle = (index / connectedHCPs.length) * 2 * Math.PI
         const x = centerX + Math.cos(angle) * radius
         const y = centerY + Math.sin(angle) * radius
 
         return {
           id: hcp.id,
-          type: "hcp",
-          position: { x, y },
-          data: {
-            hcp,
-            isCenter: false,
-            isHighlighted: highlightedNodeId === hcp.id,
-            onSelect: onNodeSelect,
-          },
+          x,
+          y,
+          hcp,
+          isCenter: false,
         }
       })
 
+      const allNodes = [centerNode, ...surroundingNodes]
+
       // Create edges
-      const networkEdges: Edge[] = mockConnections
+      const networkEdges: EdgePosition[] = mockConnections
         .filter(
           (conn) =>
             (conn.source === centerHCP.id && connectedHCPIds.includes(conn.target)) ||
             (conn.target === centerHCP.id && connectedHCPIds.includes(conn.source)),
         )
-        .map((conn) => ({
-          id: conn.id,
-          source: conn.source,
-          target: conn.target,
-          type: "connection",
-          data: {
-            connection: conn,
-            onHover: (connection: Connection, event: React.MouseEvent) => {
-              setHoveredConnection(connection)
-              setMousePosition({ x: event.clientX, y: event.clientY })
-            },
-            onLeave: () => setHoveredConnection(null),
-          },
-        }))
+        .map((conn) => {
+          const sourceNode = allNodes.find((node) => node.id === conn.source)!
+          const targetNode = allNodes.find((node) => node.id === conn.target)!
 
-      return { nodes: [centerNode, ...surroundingNodes], edges: networkEdges }
+          return {
+            id: conn.id,
+            source: sourceNode,
+            target: targetNode,
+            connection: conn,
+          }
+        })
+
+      return { nodes: allNodes, edges: networkEdges }
     },
-    [highlightedNodeId, onNodeSelect],
+    [selectedHCP],
   )
 
   useEffect(() => {
@@ -120,24 +105,85 @@ export function NetworkGraph({ selectedHCP, onNodeSelect, highlightedNodeId }: N
     setEdges(newEdges)
   }, [selectedHCP, generateLayout])
 
+  const handleConnectionHover = (connection: Connection, event: React.MouseEvent) => {
+    setHoveredConnection(connection)
+    setMousePosition({ x: event.clientX, y: event.clientY })
+  }
+
+  const handleConnectionLeave = () => {
+    setHoveredConnection(null)
+  }
+
+  // Generate SVG path for curved connections
+  const generatePath = (source: NodePosition, target: NodePosition) => {
+    const dx = target.x - source.x
+    const dy = target.y - source.y
+    const dr = Math.sqrt(dx * dx + dy * dy)
+
+    // Create a curved path
+    const sweep = dx > 0 ? 1 : 0
+    return `M ${source.x} ${source.y} A ${dr * 0.3} ${dr * 0.3} 0 0 ${sweep} ${target.x} ${target.y}`
+  }
+
   return (
-    <div className="relative w-full h-full">
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
-        connectionMode={ConnectionMode.Loose}
-        fitView
-        fitViewOptions={{ padding: 0.2 }}
-        minZoom={0.5}
-        maxZoom={2}
-      >
-        <Background color="rgba(14, 165, 233, 0.1)" />
-        <Controls />
-      </ReactFlow>
+    <div className="relative w-full h-full overflow-hidden">
+      <svg className="absolute inset-0 w-full h-full">
+        {/* Render edges */}
+        {edges.map((edge) => {
+          const midX = (edge.source.x + edge.target.x) / 2
+          const midY = (edge.source.y + edge.target.y) / 2
+
+          return (
+            <g key={edge.id}>
+              <path
+                d={generatePath(edge.source, edge.target)}
+                stroke="#0ea5e9"
+                strokeWidth="2"
+                fill="none"
+                className="cursor-pointer"
+                onMouseEnter={(e) => handleConnectionHover(edge.connection, e)}
+                onMouseLeave={handleConnectionLeave}
+              />
+              {/* Connection label */}
+              <foreignObject x={midX - 40} y={midY - 12} width="80" height="24" className="pointer-events-none">
+                <div className="bg-white border border-sky-200 rounded px-2 py-1 text-xs font-medium text-sky-700 shadow-sm text-center">
+                  {edge.connection.type}
+                </div>
+              </foreignObject>
+            </g>
+          )
+        })}
+      </svg>
+
+      {/* Render nodes */}
+      {nodes.map((node) => (
+        <HCPNode key={node.id} node={node} isHighlighted={highlightedNodeId === node.id} onSelect={onNodeSelect} />
+      ))}
+
+      {/* Zoom controls */}
+      <div className="absolute bottom-4 right-4 flex flex-col gap-2 bg-white rounded-lg shadow-lg p-2">
+        <button className="p-2 hover:bg-gray-100 rounded">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.35-4.35" />
+            <line x1="11" y1="8" x2="11" y2="14" />
+            <line x1="8" y1="11" x2="14" y2="11" />
+          </svg>
+        </button>
+        <button className="p-2 hover:bg-gray-100 rounded">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.35-4.35" />
+            <line x1="8" y1="11" x2="14" y2="11" />
+          </svg>
+        </button>
+        <button className="p-2 hover:bg-gray-100 rounded">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M3 3v18h18" />
+            <path d="m19 9-5 5-4-4-3 3" />
+          </svg>
+        </button>
+      </div>
 
       {hoveredConnection && <ConnectionTooltip connection={hoveredConnection} position={mousePosition} />}
     </div>
